@@ -1,0 +1,158 @@
+#define interval 5000
+#define BaseTime 60000
+
+#include <RF24.h>
+#include <RF24Network.h>
+#include <SPI.h>
+#include <EEPROM.h>
+
+RF24 radio(9, 8);            // nRF24L01 (CE,CSN)
+RF24Network network(radio);  // Include the radio in the network
+
+const uint16_t this_device = 01;  // Address of this node in Octal format
+const uint16_t Master = 00;       // Master Node
+unsigned long last_sent = 0;      // Wireless data transfer previous millis
+
+struct payload_t {  // Structure of our payload
+  int runtime_hrsA = 0;
+  uint16_t runtime_minsA = 0;
+  int stoppagetime_hrsA = 0;
+  uint16_t stoppagetime_minsA = 0;
+  int Weftstoppagetime_hrsA = 0;
+  uint16_t Weftstoppagetime_minsA = 0;
+  int Othersstoppagetime_hrsA = 0;
+  uint16_t Othersstoppagetime_minsA = 0;
+
+  int runtime_hrsB = 0;
+  uint16_t runtime_minsB = 0;
+  int stoppagetime_hrsB = 0;
+  uint16_t stoppagetime_minsB = 0;
+  int Weftstoppagetime_hrsB = 0;
+  uint16_t Weftstoppagetime_minsB = 0;
+  int Othersstoppagetime_hrsB = 0;
+  uint16_t Othersstoppagetime_minsB = 0;
+  
+  float effA = 0;
+  float effB = 0;
+  uint16_t remainingBeam = 0;
+  int ShiftAproduction = 0;
+  int ShiftBproduction = 0;
+  int Totalproduction = 0;
+  int LoomStatus = 0;
+  int LoomRpm = 0;
+};
+
+struct userData_t {  // Structure of our userData
+  int beamlength = 0;
+  int pick = 0;
+  // int reed = 0;
+  // int beamNo = 0;
+  // int ArticleNo = 0;
+  int shrinkage = 0;
+  int shiftSlot = 0;  // 1 --> 7am-7pm , 2 --> 7pm-7am
+};
+
+payload_t payload;
+userData_t userData;
+bool send_data = false, read_data = false;
+int pulses = 0;
+unsigned long RunMillis = 0, Stoppagemillis = 0;
+int runCount = 0, stoppageCount = 0, weftFaultCount = 0, othersFaultcount = 0;
+int beamlength = 0, beamlengthShrink = 0, pick = 0, shrinkFactor = 0, Rpm = 0;
+float shrinkage = 0, LoomProduction = 0, LoomProductionShift = 0, productionFactor = 0;  // pick/inch * 39.4
+
+void writeLongIntoEEPROM(int address, long number)  // for 4 bytes - long
+{
+  EEPROM.write(address, (number >> 24) & 0xFF);
+  EEPROM.write(address + 1, (number >> 16) & 0xFF);
+  EEPROM.write(address + 2, (number >> 8) & 0xFF);
+  EEPROM.write(address + 3, number & 0xFF);
+}
+
+long readLongFromEEPROM(int address) {
+  return ((long)EEPROM.read(address) << 24) + ((long)EEPROM.read(address + 1) << 16) + ((long)EEPROM.read(address + 2) << 8) + (long)EEPROM.read(address + 3);
+}
+
+void writeIntIntoEEPROM(int address, int number)  // for only 2 bytes - int
+{
+  byte byte1 = number >> 8;
+  byte byte2 = number & 0xFF;
+  EEPROM.write(address, byte1);
+  EEPROM.write(address + 1, byte2);
+}
+
+int readIntFromEEPROM(int address) {
+  byte byte1 = EEPROM.read(address);
+  byte byte2 = EEPROM.read(address + 1);
+  return (byte1 << 8) + byte2;
+}
+
+void initPins() {
+  Serial.println("Initializing...!");
+  pinMode(VoltagePin, INPUT);
+  pinMode(RedLED, INPUT);
+  pinMode(YellowLED, INPUT);
+  pinMode(BlueLED, INPUT);
+
+  // beamlength = readIntFromEEPROM(8);
+  // pick = readIntFromEEPROM(10);
+  // shrinkFactor = readIntFromEEPROM(12);
+  // // LoomProduction = readIntFromEEPROM(6);
+
+  // productionFactor = (float)(pick)*39.4;
+  // shrinkage = (float)(shrinkFactor) / 100;
+  // shrinkage = (float)beamlength * shrinkage;
+  // beamlengthShrink = beamlength - (int)shrinkage;
+}
+
+void ShiftChange() {
+  if (userData.shiftSlot == 1) {
+    LoomProductionShift = 0;
+    payload.stoppagetime_minsA = 0;
+    payload.Weftstoppagetime_minsA = 0;
+    payload.Othersstoppagetime_minsA = 0;
+    payload.runtime_minsA = 0;
+    payload.stoppagetime_hrsA = 0;
+    payload.Weftstoppagetime_hrsA = 0;
+    payload.Othersstoppagetime_hrsA = 0;
+    payload.runtime_hrsA = 0;
+    payload.ShiftAproduction = 0;
+
+  } else if (userData.shiftSlot == 2) {
+    LoomProductionShift = 0;
+    payload.stoppagetime_minsB = 0;
+    payload.Weftstoppagetime_minsB = 0;
+    payload.Othersstoppagetime_minsB = 0;
+    payload.runtime_minsB = 0;
+    payload.stoppagetime_hrsB = 0;
+    payload.Weftstoppagetime_hrsB = 0;
+    payload.Othersstoppagetime_hrsB = 0;
+    payload.runtime_hrsB = 0;
+    payload.ShiftBproduction = 0;
+  }
+}
+
+void saveEEPROM() {
+  writeIntIntoEEPROM(14, payload.remainingBeam);
+  writeIntIntoEEPROM(16, payload.Totalproduction);
+  writeIntIntoEEPROM(6, LoomProduction);
+  if (userData.shiftSlot == 1) {
+    EEPROM.write(18, payload.Othersstoppagetime_minsA);
+    EEPROM.write(19, payload.stoppagetime_minsA);
+    EEPROM.write(20, payload.Weftstoppagetime_minsA);
+    EEPROM.write(21, payload.runtime_minsA);
+    EEPROM.write(22, payload.stoppagetime_hrsA);
+    EEPROM.write(23, payload.Weftstoppagetime_hrsA);
+    EEPROM.write(24, payload.Othersstoppagetime_hrsA);
+    EEPROM.write(25, payload.runtime_hrsA);
+  } else if (userData.shiftSlot == 2) {
+    EEPROM.write(26, payload.Othersstoppagetime_minsB);
+    EEPROM.write(27, payload.stoppagetime_minsB);
+    EEPROM.write(28, payload.Weftstoppagetime_minsB);
+    EEPROM.write(29, payload.runtime_minsB);
+    EEPROM.write(30, payload.stoppagetime_hrsA);
+    EEPROM.write(31, payload.Weftstoppagetime_hrsA);
+    EEPROM.write(32, payload.Othersstoppagetime_hrsA);
+    EEPROM.write(33, payload.runtime_hrsA);
+  }
+}

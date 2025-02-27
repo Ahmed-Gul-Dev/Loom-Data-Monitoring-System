@@ -1,0 +1,210 @@
+/**************************************************
+Run time
+Eff%
+Stoppage time
+Weft Stoppage time
+Others Stoppage time
+Loom Rpm
+Loom Status
+Loom Production(m)
+Remaining Beam Length
+****************************************************
+Pick/inch (density)
+Beam Length
+Reed
+Beam No.
+Sizing Lot
+Shrinkage(%)
+*****************************************************/
+
+#define VoltagePin 5
+#define RedLED 6     // Run/Stop Signal
+#define YellowLED 4  // Leno/Other Fault Signal
+#define BlueLED 3    // Weft Signal
+#define interval 60
+
+#include "Config.h"
+
+// daily mins = 60 * 24 = 1440 mins
+// weekly mins = 60 * 24 * 7 = 10080 mins
+// monthly mins = 60 * 24 * 30 = 43200 mins
+
+void count() {
+  if (digitalRead(RedLED) == 1) {
+    pulses++;
+  }
+}
+
+void setup() {
+  Serial.begin(9600);
+  initPins();
+  attachInterrupt(digitalPinToInterrupt(BlueLED), count, FALLING);
+
+  // SPI.begin();
+  // radio.begin();
+  // network.begin(90, this_device);  //(channel, node address)
+  // radio.setDataRate(RF24_2MBPS);
+  Serial.print("Success !");
+
+  // userData.shiftSlot = 1;
+  // Serial.println();
+}
+
+unsigned long pmillis = 0;
+void loop() {
+
+  // if (millis() - pmillis >=990) {
+  //   Rpm = pulses;
+  //   pulses = 0;
+  //   Rpm = (Rpm * 60);
+  //   Serial.println(Rpm);
+  //   pmillis = millis();
+  // }
+
+
+
+
+
+
+
+
+  // network.update();
+
+  //===== Receiving =====//
+  // while (network.available()) {  // Is there any incoming data ?
+  //   RF24NetworkHeader header;
+  //   network.read(header, &userData, sizeof(userData));  // Read the incoming data
+
+  //   if (userData.beamlength != beamlength)
+  //     writeIntIntoEEPROM(8, userData.beamlength);
+  //   if (userData.pick != pick)
+  //     EEPROM.write(10, userData.pick);
+  //   if (userData.shrinkage != shrinkFactor)
+  //     EEPROM.write(12, userData.shrinkage);
+
+  //   productionFactor = (float)(userData.pick) * 39.4;
+  //   shrinkage = (float)(userData.shrinkage) / 100;
+  //   shrinkage = (float)userData.beamlength * shrinkage;
+  //   beamlengthShrink = userData.beamlength - (int)shrinkage;
+  //   ShiftChange();
+  // }
+
+  // if (digitalRead(RedLED) == 0) {  // Stop Signal
+  //   payload.LoomStatus = 0;
+  //   if (millis() - Stoppagemillis >= 1000) {  // 1 sec Counter
+  //     if (digitalRead(YellowLED) == 0) {
+  //       othersFaultcount++;
+  //     } else if (digitalRead(BlueLED) == 0) {
+  //       weftFaultCount++;
+  //     } else {
+  //       stoppageCount++;
+  //     }
+  //     Stoppagemillis = millis();
+  //   }
+  //   if (stoppageCount >= 60) {
+  //     send_data = true;
+  //     if (userData.shiftSlot == 1) {
+  //       payload.stoppagetime_minsA++;
+  //     } else if (userData.shiftSlot == 2) {
+  //       payload.stoppagetime_minsB++;
+  //     }
+  //     stoppageCount = 0;
+  //     printData();
+  //   } else if (weftFaultCount >= 60) {
+  //     if (userData.shiftSlot == 1) {
+  //       payload.Weftstoppagetime_minsA++;
+  //     } else if (userData.shiftSlot == 2) {
+  //       payload.Weftstoppagetime_minsB++;
+  //     }
+  //     weftFaultCount = 0;
+  //     printData();
+  //   } else if (othersFaultcount >= 60) {
+  //     if (userData.shiftSlot == 1) {
+  //       payload.Othersstoppagetime_minsA++;
+  //     } else if (userData.shiftSlot == 2) {
+  //       payload.Othersstoppagetime_minsB++;
+  //     }
+  //     othersFaultcount = 0;
+  //     printData();
+  //   }
+  //   if (payload.stoppagetime_minsA >= 60) {
+  //     payload.stoppagetime_hrsA++;
+  //     payload.stoppagetime_minsA = 0;
+  //   } else if (payload.Weftstoppagetime_minsA >= 60) {
+  //     payload.Weftstoppagetime_hrsA++;
+  //     payload.Weftstoppagetime_minsA = 0;
+  //   } else if (payload.Othersstoppagetime_minsA >= 60) {
+  //     payload.Othersstoppagetime_hrsA++;
+  //     payload.Othersstoppagetime_minsA = 0;
+  //   } else if (payload.stoppagetime_minsB >= 60) {
+  //     payload.stoppagetime_hrsB++;
+  //     payload.stoppagetime_minsB = 0;
+  //   } else if (payload.Weftstoppagetime_minsB >= 60) {
+  //     payload.Weftstoppagetime_hrsB++;
+  //     payload.Weftstoppagetime_minsB = 0;
+  //   } else if (payload.Othersstoppagetime_minsB >= 60) {
+  //     payload.Othersstoppagetime_hrsB++;
+  //     payload.Othersstoppagetime_minsB = 0;
+  //   }
+
+
+  // } else if (digitalRead(RedLED) == 1) {  // Running Signal
+  //   payload.LoomStatus = 1;
+  //   if (millis() - RunMillis >= 990) {  // 1 sec Counter
+
+  //     runCount++;
+  //     RunMillis = millis();
+  //   }
+
+  //   if (runCount >= 60) {
+  //     payload.LoomRpm = pulses;
+  //     pulses = 0;
+
+  //     send_data = true;
+  //     runCount = 0;
+  //     LoomProductionShift += (float)payload.LoomRpm / productionFactor;
+  //     LoomProduction += (float)payload.LoomRpm / productionFactor;
+  //     payload.Totalproduction = (int)LoomProduction;
+  //     payload.remainingBeam = beamlengthShrink - payload.Totalproduction;
+  //     Serial.print("Loom Rpm => ");
+  //     Serial.println(payload.LoomRpm);
+  //     if (userData.shiftSlot == 1) {
+  //       payload.runtime_minsA++;
+  //       payload.ShiftAproduction = (int)LoomProductionShift;
+  //     } else if (userData.shiftSlot == 2) {
+  //       payload.runtime_minsB++;
+  //       payload.ShiftBproduction = (int)LoomProductionShift;
+  //     }
+  //     if (payload.runtime_minsA >= 60) {
+  //       payload.runtime_hrsA++;
+  //     } else if (payload.runtime_minsB >= 60) {
+  //       payload.runtime_hrsB++;
+  //     }
+  //     printData();
+  //   }
+  // }
+
+  // if (digitalRead(VoltagePin) == 1) {
+  //   saveEEPROM();
+  //   delay(3000);
+  // }
+
+  // if (send_data) {
+  //   send_data = false;
+  //   RF24NetworkHeader headerM(Master);
+  //   bool ok = network.write(headerM, &payload, sizeof(payload));  // Send the data
+  // }
+}
+
+void printData() {
+  Serial.print(payload.LoomStatus);
+  Serial.print("\t");
+  Serial.print(payload.stoppagetime_minsA);
+  Serial.print("\t");
+  Serial.print(payload.Weftstoppagetime_minsA);
+  Serial.print("\t");
+  Serial.print(payload.Othersstoppagetime_minsA);
+  Serial.print("\t");
+  Serial.print(payload.runtime_minsA);
+  Serial.println("   ");
+}
